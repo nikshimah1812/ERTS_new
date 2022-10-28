@@ -46,19 +46,24 @@ BEGIN
   dmai.size <= HSIZE;
   dmai.wdata <= HWDATA;
   dmai.write <= HWRITE;
+  
+  -- dmai signals connected to the ground/not connected
+  dmai.busy <= '0';
+  dmai.irq <= '0';
+  dmai.burst <= '0';
     
-  next_state_logic: PROCESS(currentState, HTRANS, dmao.start, dmao.ready)
+  next_state_logic: PROCESS(currentState, HTRANS, dmao.ready)
   BEGIN
   CASE currentState IS 
       WHEN IDLE =>        
-        IF (dmao.start = '0') OR (HTRANS /= "10") OR (HTRANS /= "11") THEN
+        IF (HTRANS = "10") THEN
           nextState <= instr_fetch;
         ELSE
           nextState <= IDLE;
         END IF;
         
       WHEN instr_fetch =>
-        IF dmao.ready = '1' AND dmao.active = '0' THEN
+        IF dmao.ready = '1' THEN
           nextState <= IDLE;
         ELSE
           nextState <= instr_fetch;
@@ -69,49 +74,38 @@ BEGIN
     END CASE;
   END PROCESS;
   
-  output_logic: PROCESS(currentState, dmao.start, HTRANS)
+  output_logic: PROCESS(currentState, HTRANS, dmao.ready)
   BEGIN
-    
-    HREADY <= '0';
-    dmai.start <= '0';
-    
+
     CASE currentState IS 
          
       WHEN IDLE =>
-        IF dmao.start = '1' AND (HTRANS = "10" OR HTRANS = "11") THEN dmai.start <= '1';
+        HREADY <= '1';
+        dmai.start <= '0';
+        
+        IF(HTRANS = "10") THEN dmai.start <= '1';
         ELSE dmai.start <= '0';
         END IF;
         
-        IF HTRANS = "11" THEN dmai.burst <= '0';
-        ELSE dmai.burst <= '0';
-        END IF;
-        
-        IF HTRANS = "01" THEN dmai.busy <= '1';
-        ELSE dmai.busy <= '0';
-        END IF;
-        
-        HREADY <= '0';
-
       WHEN instr_fetch =>
+        HREADY <= '0';
         dmai.start <= '0';
-        dmai.burst <= '0';
-        dmai.busy <= '0';
-        HREADY <= '1';
+        
+        IF dmao.ready = '1' THEN HREADY <= '1';
+        ELSE HREADY <= '0';
+        END IF;
         
       WHEN OTHERS => 
-        HREADY <= '0';
+        HREADY <= '1';
         dmai.start <= '0';
-        dmai.busy <= '0';
-        dmai.burst <= '0';
     
     END CASE;
     
-    dmai.irq <= dmao.start;
   END PROCESS;
 
   stateReg: PROCESS(rstn,clkm)
   BEGIN
-    IF rstn = '1'  THEN
+    IF rstn = '0'  THEN
       currentState <= IDLE;
     ELSIF rising_edge(clkm) THEN
       currentState <= nextState;
@@ -119,4 +113,3 @@ BEGIN
   END PROCESS;
   
 END behavioral;
-
