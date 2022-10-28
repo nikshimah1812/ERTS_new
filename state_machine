@@ -36,7 +36,7 @@ END state_machine;
 -- ARCHITECTURE FOR THE STATE MACHINE
 ARCHITECTURE behavioral OF state_machine IS
   
-  TYPE state_type IS (IDLE, SEND_START, instr_fetch, READY_HIGH);
+  TYPE state_type IS (IDLE, instr_fetch);
   SIGNAL currentState, nextState: state_type;
 
 BEGIN
